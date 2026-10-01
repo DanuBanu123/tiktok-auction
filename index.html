@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikTok LIVE Auction Widget</title>
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background: #00ff00 !important;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #fff;
+  }
+
+  body {
+    overflow: hidden;
+    background: #00ff00 !important;
+  }
+
+  :root {
+    --pink: #fe2c55;
+    --cyan: #25f4ee;
+    --panel: rgba(15, 15, 20, .96);
+    --panel2: rgba(30, 30, 38, .96);
+    --border: rgba(255,255,255,.12);
+    --muted: #9da0aa;
+    --green: #31d17c;
+  }
+
+  /* Entire overlay is transparent. The layout only occupies the auction
+     card and the optional settings panel. */
+  .app { display: block; width: max-content; padding: 18px; background: transparent; }
+
+  /* ================= AUCTION ================= */
+
+  .auction {
+    width: 560px;
+    flex: 0 0 560px;
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(25,25,31,.98), rgba(11,11,15,.98));
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  }
+
+  .auction-header {
+    text-align: center;
+    padding: 14px 18px 10px;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 2px;
+  }
+
+  .timer-wrap {
+    text-align: center;
+    padding: 0 18px 14px;
+  }
+
+  .timer {
+    font-size: 56px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 0 3px 18px rgba(0,0,0,.45);
+  }
+
+  .timer.warning {
+    color: #ffcc33;
+    animation: pulse .7s infinite alternate;
+  }
+
+  .timer.danger {
+    color: var(--pink);
+    animation: pulse .35s infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { transform: scale(1); opacity: .82; }
+    to   { transform: scale(1.04); opacity: 1; }
+  }
+
+  .snipe {
+    display: inline-block;
+    margin-top: 7px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(254,44,85,.13);
+    border: 1px solid rgba(254,44,85,.3);
+    color: #ff8299;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  .top-text {
+    text-align: center;
+    min-height: 22px;
+    margin: 0 18px 10px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .leaderboard {
+    padding: 0 12px 12px;
+  }
+
+  .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 42px 42px minmax(0,1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 70px;
+    margin: 7px 0;
+    padding: 9px 12px 9px 8px;
+    border-radius: 13px;
+    background: rgba(255,255,255,.055);
+    border: 1px solid rgba(255,255,255,.065);
+  }
+
+  .row.first {
+    background: linear-gradient(90deg, rgba(255,215,70,.14), rgba(255,255,255,.05));
+    border-color: rgba(255,215,70,.2);
+  }
+
+  .medal {
+    text-align: center;
+    font-size: 23px;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #25252d;
+    border: 2px solid rgba(255,255,255,.1);
+  }
+
+  .avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 900;
+    color: #fff;
+  }
+
+  .user-info {
+    min-width: 0;
+  }
+
+  .username {
+    font-size: 15px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .last-gift {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .coins {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 17px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .coin-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #f6c94d;
+    font-size: 11px;
+    font-weight: 900;
+    background: linear-gradient(145deg, #fff1a8, #e6a92e);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.22);
+  }
+
+  .empty {
+    padding: 35px 15px;
+    text-align: center;
+    color: #7f818b;
+    font-size: 13px;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px 13px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    color: #898b95;
+    font-size: 11px;
+  }
+
+  .connection {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #777;
+  }
+
+  .dot.online {
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(49,209,124,.8);
+  }
+
+  /* Gift popup */
+  .gift-popup {
+    position: fixed;
+    left: 50%;
+    top: 15px;
+    transform: translateX(-50%) translateY(-10px);
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.86);
+    border: 1px solid rgba(255,255,255,.14);
+    opacity: 0;
+    pointer-events: none;
+    transition: .2s ease;
+    font-size: 13px;
+    font-weight: 800;
+    z-index: 20;
+  }
+
+  .gift-popup.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ================= SIDE SETTINGS ================= */
+
+  .settings {
+    width: 330px;
+    flex: 0 0 330px;
+    border-radius: 16px;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  }
+
+  .settings.hidden {
+    display: none;
+  }
+
+  .settings-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .settings-title strong {
+    font-size: 15px;
+    letter-spacing: .5px;
+  }
+
+  .settings-title span {
+    color: #777b86;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,.08);
+  }
+
+  label {
+    display: block;
+    margin: 0 0 5px;
+    color: #b8bac2;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  input {
+    width: 100%;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 9px;
+    outline: none;
+    color: #fff;
+    background: rgba(255,255,255,.07);
+    font-size: 13px;
+  }
+
+  input:focus {
+    border-color: rgba(37,244,238,.55);
+  }
+
+  .field {
+    margin-bottom: 9px;
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  button {
+    min-height: 36px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    color: #fff;
+    background: #303039;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  button:hover {
+    filter: brightness(1.15);
+  }
+
+  .primary {
+    background: linear-gradient(135deg, #fe2c55, #ff466c);
+  }
+
+  .cyan {
+    background: linear-gradient(135deg, #16aaa7, #25f4ee);
+    color: #081010;
+  }
+
+  .danger {
+    background: #54212a;
+  }
+
+  .full {
+    width: 100%;
+  }
+
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .small-note {
+    margin-top: 6px;
+    color: #727580;
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .status-box {
+    padding: 9px 10px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.045);
+    color: #999ca6;
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .status-box b {
+    color: #fff;
+  }
+
+  /* Floating settings toggle: remains visible even when settings are hidden */
+  .settings-toggle {
+    position: fixed;
+    right: 12px;
+    top: 12px;
+    z-index: 50;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: rgba(15,15,20,.9);
+    border: 1px solid rgba(255,255,255,.12);
+    font-size: 10px;
+  }
+
+  /* Prevent accidental page scrollbars in LIVE Studio */
+  @media (max-width: 930px) {
+    .settings {
+      width: 300px;
+      flex-basis: 300px;
+    }
+    .auction {
+      width: 520px;
+      flex-basis: 520px;
+    }
+  }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="auction">
+    <div class="auction-header" id="headerText">NO MINIMUM</div>
+    <div class="timer-wrap">
+      <div class="timer" id="timer">01:00</div>
+      <div class="snipe" id="snipeText">STREAM DELAY 20s</div>
+    </div>
+    <div class="top-text" id="topText"></div>
+    <div class="leaderboard" id="leaderboard"><div class="empty">Waiting for gifts...</div></div>
+    <div class="footer">
+      <span id="participantCount">0 PARTICIPANTS</span>
+      <span class="connection"><i class="dot" id="connectionDot"></i><span id="connectionText">Auction Offline</span></span>
+    </div>
+  </section>
+</div>
+<div class="gift-popup" id="giftPopup"></div>
+<script>
+const $ = id => document.getElementById(id);
+const timerEl = $('timer');
+const leaderboardEl = $('leaderboard');
+const popupEl = $('giftPopup');
+let state = null;
+let lastGiftAt = 0;
+let clockOffset = 0;
+
+function formatTime(seconds) {
+  seconds = Math.max(0, Math.ceil(seconds));
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function renderTimer() {
+  if (!state) return;
+  const now = Date.now() - clockOffset;
+  let remaining = 0;
+  if (state.status === 'auction') remaining = (state.auctionEndsAt - now) / 1000;
+  else if (state.status === 'delay') remaining = (state.delayEndsAt - now) / 1000;
+  timerEl.textContent = formatTime(remaining);
+  timerEl.classList.remove('warning','danger');
+  if (state.status === 'auction') {
+    if (remaining <= 10) timerEl.classList.add('danger');
+    else if (remaining <= 20) timerEl.classList.add('warning');
+  } else if (state.status === 'delay') {
+    timerEl.classList.add('warning');
+  } else {
+    timerEl.classList.add('danger');
+  }
+  if (state.status === 'delay') $('snipeText').textContent = 'STREAM DELAY';
+  else if (state.status === 'ended') $('snipeText').textContent = 'AUCTION ENDED';
+  else $('snipeText').textContent = 'STREAM DELAY ' + Number(state.settings.streamDelay||0) + 's';
+}
+function escapeHtml(value) { return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+function initial(name) { return String(name||'?').trim().charAt(0).toUpperCase() || '?'; }
+function renderLeaderboard() {
+  const list = Object.values(state?.participants || {}).sort((a,b)=>b.coins-a.coins);
+  $('participantCount').textContent = `${list.length} PARTICIPANT${list.length===1?'':'S'}`;
+  if (!list.length) { leaderboardEl.innerHTML='<div class="empty">Waiting for gifts...</div>'; return; }
+  leaderboardEl.innerHTML=list.slice(0,10).map((p,i)=>{
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+    const avatar=p.avatar?`<img class="avatar" src="${escapeHtml(p.avatar)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:'';
+    const placeholder=`<div class="avatar avatar-placeholder" style="${p.avatar?'display:none':''}">${escapeHtml(initial(p.username))}</div>`;
+    return `<div class="row ${i===0?'first':''}"><div class="medal">${medal}</div><div>${avatar}${placeholder}</div><div class="user-info"><div class="username">${escapeHtml(p.username)}</div><div class="last-gift">${escapeHtml(p.lastGift||'Gift')} ×${Number(p.lastQuantity||1)}</div></div><div class="coins"><span class="coin-icon">◆</span>${Number(p.coins||0).toLocaleString()}</div></div>`;
+  }).join('');
+}
+function renderState(s) {
+  state=s;
+  clockOffset = Date.now() - Number(s.serverNow || Date.now());
+  $('topText').textContent=s.settings.topText||'';
+  $('connectionText').textContent='Auction Connected';
+  $('connectionDot').classList.add('online');
+  renderLeaderboard(); renderTimer();
+  if (s.lastGift && s.lastGift.at > lastGiftAt) {
+    lastGiftAt=s.lastGift.at;
+    popupEl.textContent=`${s.lastGift.username} sent ${s.lastGift.giftName} ×${s.lastGift.quantity} · +${Number(s.lastGift.coins||0).toLocaleString()} coins`;
+    popupEl.classList.add('show');
+    clearTimeout(window.__popup); window.__popup=setTimeout(()=>popupEl.classList.remove('show'),1800);
+  }
+}
+async function poll() {
+  try {
+    const r=await fetch('/api/state?ts='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw new Error('state');
+    renderState(await r.json());
+  } catch(e) {
+    $('connectionText').textContent='Auction Offline';
+    $('connectionDot').classList.remove('online');
+  }
+}
+poll();
+setInterval(poll,1000);
+setInterval(renderTimer,100);
+</script>
+</body>
+</html>

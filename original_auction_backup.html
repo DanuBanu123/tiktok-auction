@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikTok LIVE Auction Overlay</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background: #00ff00 !important;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #fff;
+  }
+
+  body {
+    overflow: hidden;
+    background: #00ff00 !important;
+  }
+
+  :root {
+    --pink: #fe2c55;
+    --cyan: #25f4ee;
+    --panel: rgba(15, 15, 20, .96);
+    --panel2: rgba(30, 30, 38, .96);
+    --border: rgba(255,255,255,.12);
+    --muted: #9da0aa;
+    --green: #31d17c;
+  }
+
+  /* Entire overlay is transparent. The layout only occupies the auction
+     card and the optional settings panel. */
+  .app {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    width: max-content;
+    min-height: 100vh;
+    padding: 18px;
+    background: transparent;
+  }
+
+  /* ================= AUCTION ================= */
+
+  .auction {
+    width: 560px;
+    flex: 0 0 560px;
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(25,25,31,.98), rgba(11,11,15,.98));
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  }
+
+  .auction-header {
+    text-align: center;
+    padding: 14px 18px 10px;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 2px;
+  }
+
+  .timer-wrap {
+    text-align: center;
+    padding: 0 18px 14px;
+  }
+
+  .timer {
+    font-size: 56px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 0 3px 18px rgba(0,0,0,.45);
+  }
+
+  .timer.warning {
+    color: #ffcc33;
+    animation: pulse .7s infinite alternate;
+  }
+
+  .timer.danger {
+    color: var(--pink);
+    animation: pulse .35s infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { transform: scale(1); opacity: .82; }
+    to   { transform: scale(1.04); opacity: 1; }
+  }
+
+  .snipe {
+    display: inline-block;
+    margin-top: 7px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(254,44,85,.13);
+    border: 1px solid rgba(254,44,85,.3);
+    color: #ff8299;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  .top-text {
+    text-align: center;
+    min-height: 22px;
+    margin: 0 18px 10px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .leaderboard {
+    padding: 0 12px 12px;
+  }
+
+  .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 42px 42px minmax(0,1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 70px;
+    margin: 7px 0;
+    padding: 9px 12px 9px 8px;
+    border-radius: 13px;
+    background: rgba(255,255,255,.055);
+    border: 1px solid rgba(255,255,255,.065);
+  }
+
+  .row.first {
+    background: linear-gradient(90deg, rgba(255,215,70,.14), rgba(255,255,255,.05));
+    border-color: rgba(255,215,70,.2);
+  }
+
+  .medal {
+    text-align: center;
+    font-size: 23px;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #25252d;
+    border: 2px solid rgba(255,255,255,.1);
+  }
+
+  .avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 900;
+    color: #fff;
+  }
+
+  .user-info {
+    min-width: 0;
+  }
+
+  .username {
+    font-size: 15px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .last-gift {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .coins {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 17px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .coin-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #f6c94d;
+    font-size: 11px;
+    font-weight: 900;
+    background: linear-gradient(145deg, #fff1a8, #e6a92e);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.22);
+  }
+
+  .empty {
+    padding: 35px 15px;
+    text-align: center;
+    color: #7f818b;
+    font-size: 13px;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px 13px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    color: #898b95;
+    font-size: 11px;
+  }
+
+  .connection {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #777;
+  }
+
+  .dot.online {
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(49,209,124,.8);
+  }
+
+  /* Gift popup */
+  .gift-popup {
+    position: fixed;
+    left: 50%;
+    top: 15px;
+    transform: translateX(-50%) translateY(-10px);
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.86);
+    border: 1px solid rgba(255,255,255,.14);
+    opacity: 0;
+    pointer-events: none;
+    transition: .2s ease;
+    font-size: 13px;
+    font-weight: 800;
+    z-index: 20;
+  }
+
+  .gift-popup.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ================= SIDE SETTINGS ================= */
+
+  .settings {
+    width: 330px;
+    flex: 0 0 330px;
+    border-radius: 16px;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  }
+
+  .settings.hidden {
+    display: none;
+  }
+
+  .settings-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .settings-title strong {
+    font-size: 15px;
+    letter-spacing: .5px;
+  }
+
+  .settings-title span {
+    color: #777b86;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,.08);
+  }
+
+  label {
+    display: block;
+    margin: 0 0 5px;
+    color: #b8bac2;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  input {
+    width: 100%;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 9px;
+    outline: none;
+    color: #fff;
+    background: rgba(255,255,255,.07);
+    font-size: 13px;
+  }
+
+  input:focus {
+    border-color: rgba(37,244,238,.55);
+  }
+
+  .field {
+    margin-bottom: 9px;
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  button {
+    min-height: 36px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    color: #fff;
+    background: #303039;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  button:hover {
+    filter: brightness(1.15);
+  }
+
+  .primary {
+    background: linear-gradient(135deg, #fe2c55, #ff466c);
+  }
+
+  .cyan {
+    background: linear-gradient(135deg, #16aaa7, #25f4ee);
+    color: #081010;
+  }
+
+  .danger {
+    background: #54212a;
+  }
+
+  .full {
+    width: 100%;
+  }
+
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .small-note {
+    margin-top: 6px;
+    color: #727580;
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .status-box {
+    padding: 9px 10px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.045);
+    color: #999ca6;
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .status-box b {
+    color: #fff;
+  }
+
+  /* Floating settings toggle: remains visible even when settings are hidden */
+  .settings-toggle {
+    position: fixed;
+    right: 12px;
+    top: 12px;
+    z-index: 50;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: rgba(15,15,20,.9);
+    border: 1px solid rgba(255,255,255,.12);
+    font-size: 10px;
+  }
+
+  /* Prevent accidental page scrollbars in LIVE Studio */
+  @media (max-width: 930px) {
+    .settings {
+      width: 300px;
+      flex-basis: 300px;
+    }
+    .auction {
+      width: 520px;
+      flex-basis: 520px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- ================= AUCTION OVERLAY ================= -->
+  <section class="auction">
+
+    <div class="auction-header" id="headerText">NO MINIMUM</div>
+
+    <div class="timer-wrap">
+      <div class="timer" id="timer">01:00</div>
+      <div class="snipe" id="snipeText">STREAM DELAY 20s</div>
+    </div>
+
+    <div class="top-text" id="topText"></div>
+
+    <div class="leaderboard" id="leaderboard">
+      <div class="empty">Waiting for gifts...</div>
+    </div>
+
+    <div class="footer">
+      <span id="participantCount">0 PARTICIPANTS</span>
+      <span class="connection">
+        <i class="dot" id="connectionDot"></i>
+        <span id="connectionText">TikFinity Offline</span>
+      </span>
+    </div>
+
+  </section>
+
+  <!-- ================= SIDE SETTINGS ================= -->
+  <aside class="settings" id="settingsPanel">
+
+    <div class="settings-title">
+      <strong>Auction Settings</strong>
+      <span>CONTROL PANEL</span>
+    </div>
+
+    <div class="section" style="margin-top:0;padding-top:0;border-top:0">
+
+      <div class="field">
+        <label>Top Text</label>
+        <input id="topTextInput" placeholder="Example: Gift to enter!" />
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>Auction Time (sec)</label>
+          <input id="auctionTimeInput" type="number" min="1" value="60" />
+        </div>
+
+        <div class="field">
+          <label>Stream Delay (sec)</label>
+          <input id="snipeInput" type="number" min="0" value="20" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <button class="primary" id="applyBtn">Apply</button>
+        <button id="resetTimerBtn">Reset Timer</button>
+      </div>
+
+      <button class="danger full" id="resetAuctionBtn" style="margin-top:7px">
+        Reset Auction
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="settings-title" style="margin-bottom:8px">
+        <strong>Gift Simulator</strong>
+        <span>TEST</span>
+      </div>
+
+      <div class="field">
+        <label>Username</label>
+        <input id="simUser" value="TestUser" />
+      </div>
+
+      <div class="field">
+        <label>Gift Name</label>
+        <input id="simGift" value="Rose" />
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>Coins / Gift</label>
+          <input id="simCoins" type="number" min="0" value="1" />
+        </div>
+
+        <div class="field">
+          <label>Quantity</label>
+          <input id="simQty" type="number" min="1" value="1" />
+        </div>
+      </div>
+
+      <button class="cyan full" id="sendGiftBtn">
+        Send Simulated Gift
+      </button>
+
+      <div class="small-note">
+        Uses the same gift handler as TikFinity, including combo quantities and snipe extension.
+      </div>
+    </div>
+
+    <div class="section">
+      <label>Quick Gift Presets</label>
+
+      <div class="preset-grid">
+        <button data-preset="Rose|1">🌹 Rose · 1</button>
+        <button data-preset="TikTok|1">🎵 TikTok · 1</button>
+        <button data-preset="Galaxy|1000">🌌 Galaxy · 1000</button>
+        <button data-preset="Lion|29999">🦁 Lion · 29999</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="full" id="randomBtn">Random Gift Stress Test</button>
+    </div>
+
+    <div class="section">
+      <div class="status-box">
+        <b>TikFinity WebSocket</b><br>
+        ws://127.0.0.1:21213/<br><br>
+        <b>Tip:</b> Keep TikFinity Desktop running on the same PC as TikTok LIVE Studio.
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<button class="settings-toggle" id="settingsToggle">Hide Settings</button>
+
+<div class="gift-popup" id="giftPopup"></div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+
+const WS_URL = "ws://127.0.0.1:21213/";
+
+let settings = {
+  topText: "",
+  auctionTime: 60,
+  snipeExtension: 20
+};
+
+let remaining = settings.auctionTime;
+let timerInterval = null;
+let auctionRunning = true;
+let streamDelayRunning = false;
+
+const participants = {};
+const transactionRepeatCounts = {};
+
+/* ============================================================
+   DOM
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+
+const timerEl = $("timer");
+const leaderboardEl = $("leaderboard");
+const popupEl = $("giftPopup");
+
+const topTextEl = $("topText");
+const topTextInput = $("topTextInput");
+const auctionTimeInput = $("auctionTimeInput");
+const snipeInput = $("snipeInput");
+
+const connectionDot = $("connectionDot");
+const connectionText = $("connectionText");
+
+/* ============================================================
+   STORAGE
+   ============================================================ */
+
+function saveSettings() {
+  localStorage.setItem("auctionOverlaySettings", JSON.stringify(settings));
+}
+
+function loadSettings() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem("auctionOverlaySettings") || "null"
+    );
+
+    if (saved && typeof saved === "object") {
+      settings.topText = saved.topText ?? "";
+      settings.auctionTime = Number(saved.auctionTime) || 60;
+      settings.snipeExtension = Number(saved.snipeExtension) || 20;
+    }
+  } catch (e) {}
+
+  topTextInput.value = settings.topText;
+  auctionTimeInput.value = settings.auctionTime;
+  snipeInput.value = settings.snipeExtension;
+
+  topTextEl.textContent = settings.topText;
+  $("snipeText").textContent =
+    `STREAM DELAY ${settings.snipeExtension}s`;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+
+function formatTime(seconds) {
+  seconds = Math.max(0, Math.floor(seconds));
+
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function renderTimer() {
+  timerEl.textContent = formatTime(remaining);
+
+  timerEl.classList.remove("warning", "danger");
+
+  if (remaining <= 10) {
+    timerEl.classList.add("danger");
+  } else if (remaining <= 20) {
+    timerEl.classList.add("warning");
+  }
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+    if (!auctionRunning && !streamDelayRunning) return;
+
+    if (remaining > 0) {
+      remaining--;
+      renderTimer();
+      return;
+    }
+
+    if (auctionRunning) {
+      // Main auction timer ended. Start the stream-delay countdown.
+      auctionRunning = false;
+      streamDelayRunning = true;
+      remaining = Math.max(0, Number(settings.snipeExtension) || 0);
+      timerEl.classList.remove("warning", "danger");
+      renderTimer();
+      return;
+    }
+
+    if (streamDelayRunning) {
+      // Stream delay ended. Auction is now completely over.
+      streamDelayRunning = false;
+      clearInterval(timerInterval);
+      timerInterval = null;
+      remaining = 0;
+      renderTimer();
+    }
+  }, 1000);
+}
+
+function resetTimer() {
+  remaining = settings.auctionTime;
+  auctionRunning = true;
+  streamDelayRunning = false;
+  renderTimer();
+  startTimer();
+}
+
+function extendTimer(seconds) {
+  // Donations no longer extend either timer.
+  return;
+}
+
+/* ============================================================
+   AUCTION RESET
+   ============================================================ */
+
+function resetAuction() {
+  for (const key of Object.keys(participants)) {
+    delete participants[key];
+  }
+
+  for (const key of Object.keys(transactionRepeatCounts)) {
+    delete transactionRepeatCounts[key];
+  }
+
+  resetTimer();
+  renderLeaderboard();
+}
+
+/* ============================================================
+   LEADERBOARD
+   ============================================================ */
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getInitial(name) {
+  return String(name || "?").trim().charAt(0).toUpperCase() || "?";
+}
+
+function renderLeaderboard() {
+  const list = Object.values(participants)
+    .sort((a, b) => b.coins - a.coins);
+
+  $("participantCount").textContent =
+    `${list.length} PARTICIPANT${list.length === 1 ? "" : "S"}`;
+
+  if (!list.length) {
+    leaderboardEl.innerHTML =
+      `<div class="empty">Waiting for gifts...</div>`;
+    return;
+  }
+
+  leaderboardEl.innerHTML = list.slice(0, 10).map((p, index) => {
+    const medal =
+      index === 0 ? "🥇" :
+      index === 1 ? "🥈" :
+      index === 2 ? "🥉" :
+      `${index + 1}`;
+
+    const avatar = p.avatar
+      ? `<img class="avatar" src="${escapeHtml(p.avatar)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : "";
+
+    const placeholder = `
+      <div class="avatar avatar-placeholder"
+           style="${p.avatar ? "display:none" : ""}">
+        ${escapeHtml(getInitial(p.username))}
+      </div>`;
+
+    return `
+      <div class="row ${index === 0 ? "first" : ""}">
+        <div class="medal">${medal}</div>
+
+        <div>
+          ${avatar}
+          ${placeholder}
+        </div>
+
+        <div class="user-info">
+          <div class="username">${escapeHtml(p.username)}</div>
+          <div class="last-gift">
+            ${escapeHtml(p.lastGift || "Gift")}
+            ×${Number(p.lastQuantity || 1)}
+          </div>
+        </div>
+
+        <div class="coins">
+          <span class="coin-icon">◆</span>
+          ${Number(p.coins || 0).toLocaleString()}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ============================================================
+   POPUP
+   ============================================================ */
+
+let popupTimeout;
+
+function showGiftPopup(username, giftName, quantity, coins) {
+  popupEl.textContent =
+    `${username} sent ${giftName} ×${quantity} · +${coins.toLocaleString()} coins`;
+
+  popupEl.classList.add("show");
+
+  clearTimeout(popupTimeout);
+
+  popupTimeout = setTimeout(() => {
+    popupEl.classList.remove("show");
+  }, 1800);
+}
+
+/* ============================================================
+   TIKFINITY GIFT HANDLER
+   ============================================================ */
+
+function handleTikFinityGift(data) {
+  if (!data) return;
+
+  const user = data.user || {};
+
+  const username =
+    user.uniqueId ||
+    user.unique_id ||
+    data.username ||
+    data.nickname ||
+    "Anonymous";
+
+  const avatar =
+    user.profilePictureUrl ||
+    user.profilePicture ||
+    data.profilePictureUrl ||
+    data.profilePicturUrl ||
+    "";
+
+  const giftName =
+    data.giftName ||
+    data.gift_name ||
+    "Gift";
+
+  const valuePerGift = Number(
+    data.diamondCount ??
+    data.coins ??
+    data.coinValue ??
+    0
+  );
+
+  const repeatCount = Math.max(
+    1,
+    Number(data.repeatCount ?? data.repeat_count ?? 1)
+  );
+
+  /*
+    TikTok combo gifts can send several updates for the same
+    transaction. Only add the new delta.
+  */
+  const transactionId =
+    data.transactionId ||
+    data.transaction_id ||
+    null;
+
+  let quantityToAdd = repeatCount;
+
+  if (transactionId) {
+    const previous =
+      transactionRepeatCounts[transactionId] || 0;
+
+    if (repeatCount <= previous) {
+      return;
+    }
+
+    quantityToAdd = repeatCount - previous;
+    transactionRepeatCounts[transactionId] = repeatCount;
+  }
+
+  const coinsToAdd = valuePerGift * quantityToAdd;
+
+  if (!participants[username]) {
+    participants[username] = {
+      username,
+      avatar,
+      coins: 0,
+      lastGift: giftName,
+      lastQuantity: 0
+    };
+  }
+
+  const p = participants[username];
+
+  if (avatar) {
+    p.avatar = avatar;
+  }
+
+  p.coins += coinsToAdd;
+  p.lastGift = giftName;
+  p.lastQuantity = quantityToAdd;
+
+  /*
+    Stream delay:
+    Gifts never extend the timer. When the main timer reaches
+    zero, the stream-delay countdown starts automatically.
+  */
+
+  renderLeaderboard();
+
+  showGiftPopup(
+    username,
+    giftName,
+    quantityToAdd,
+    coinsToAdd
+  );
+}
+
+/* ============================================================
+   TIKFINITY WEBSOCKET
+   ============================================================ */
+
+let socket = null;
+let reconnectTimer = null;
+
+function setConnection(online) {
+  connectionDot.classList.toggle("online", online);
+  connectionText.textContent =
+    online ? "TikFinity Connected" : "TikFinity Offline";
+}
+
+function connectTikFinity() {
+  clearTimeout(reconnectTimer);
+
+  try {
+    socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      setConnection(true);
+    };
+
+    socket.onmessage = event => {
+      try {
+        const message = JSON.parse(event.data);
+
+        if (
+          message.event === "gift" ||
+          message.type === "gift"
+        ) {
+          handleTikFinityGift(message.data || message);
+        }
+      } catch (err) {
+        console.warn("Invalid TikFinity message:", event.data);
+      }
+    };
+
+    socket.onerror = () => {
+      setConnection(false);
+    };
+
+    socket.onclose = () => {
+      setConnection(false);
+
+      reconnectTimer = setTimeout(
+        connectTikFinity,
+        3000
+      );
+    };
+
+  } catch (err) {
+    setConnection(false);
+
+    reconnectTimer = setTimeout(
+      connectTikFinity,
+      3000
+    );
+  }
+}
+
+/* ============================================================
+   SIMULATOR
+   ============================================================ */
+
+function sendSimulatedGift(
+  username,
+  giftName,
+  coins,
+  quantity
+) {
+  const transactionId =
+    "sim-" + Date.now() + "-" + Math.random();
+
+  handleTikFinityGift({
+    giftName,
+    diamondCount: Number(coins),
+    repeatCount: Number(quantity),
+    transactionId,
+    user: {
+      uniqueId: username
+    }
+  });
+}
+
+$("sendGiftBtn").addEventListener("click", () => {
+  sendSimulatedGift(
+    $("simUser").value || "TestUser",
+    $("simGift").value || "Rose",
+    Number($("simCoins").value) || 0,
+    Number($("simQty").value) || 1
+  );
+});
+
+document.querySelectorAll("[data-preset]").forEach(button => {
+  button.addEventListener("click", () => {
+    const [gift, coins] =
+      button.dataset.preset.split("|");
+
+    $("simGift").value = gift;
+    $("simCoins").value = coins;
+    $("simQty").value = 1;
+  });
+});
+
+$("randomBtn").addEventListener("click", () => {
+  const gifts = [
+    ["Rose", 1],
+    ["TikTok", 1],
+    ["GG", 5],
+    ["Perfume", 20],
+    ["Galaxy", 1000],
+    ["Lion", 29999]
+  ];
+
+  const names = [
+    "Alex",
+    "Maria",
+    "John",
+    "GiftKing",
+    "TikTokFan",
+    "AuctionUser"
+  ];
+
+  const [gift, coins] =
+    gifts[Math.floor(Math.random() * gifts.length)];
+
+  const name =
+    names[Math.floor(Math.random() * names.length)];
+
+  const quantity =
+    Math.floor(Math.random() * 5) + 1;
+
+  sendSimulatedGift(
+    name,
+    gift,
+    coins,
+    quantity
+  );
+});
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+
+$("applyBtn").addEventListener("click", () => {
+  settings.topText =
+    topTextInput.value.trim();
+
+  settings.auctionTime =
+    Math.max(
+      1,
+      Number(auctionTimeInput.value) || 60
+    );
+
+  settings.snipeExtension =
+    Math.max(
+      0,
+      Number(snipeInput.value) || 0
+    );
+
+  saveSettings();
+
+  topTextEl.textContent =
+    settings.topText;
+
+  $("snipeText").textContent =
+    `STREAM DELAY ${settings.snipeExtension}s`;
+
+  resetTimer();
+});
+
+$("resetTimerBtn").addEventListener(
+  "click",
+  resetTimer
+);
+
+$("resetAuctionBtn").addEventListener(
+  "click",
+  resetAuction
+);
+
+/* ============================================================
+   SHOW / HIDE SETTINGS
+   ============================================================ */
+
+const settingsPanel = $("settingsPanel");
+const settingsToggle = $("settingsToggle");
+
+settingsToggle.addEventListener("click", () => {
+  const hidden =
+    settingsPanel.classList.toggle("hidden");
+
+  settingsToggle.textContent =
+    hidden ? "Show Settings" : "Hide Settings";
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+
+loadSettings();
+renderTimer();
+renderLeaderboard();
+startTimer();
+connectTikFinity();
+
+</script>
+
+</body>
+</html>
