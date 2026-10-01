@@ -1,8 +1,1 @@
-{
-  "name": "tiktok-auction-overlay",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@netlify/blobs": "latest"
-  }
-}
+{"name":"tiktok-auction-control","private":true,"type":"module","dependencies":{"@netlify/blobs":"^10.0.0"}}
